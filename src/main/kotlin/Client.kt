@@ -1,24 +1,14 @@
-import kotlinx.html.div
-import kotlinx.html.dom.append
-import org.w3c.dom.Node
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.dom.clear
-import kotlinx.html.DIV
-import kotlinx.html.attributesMapOf
-import kotlinx.html.classes
+import kotlinx.html.div
+import kotlinx.html.dom.append
 import kotlinx.html.id
 import kotlinx.html.js.onClickFunction
-import kotlinx.html.onClick
-import org.w3c.dom.Attr
-import org.w3c.dom.HTMLDivElement
-import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLFormElement
 import org.w3c.dom.HTMLInputElement
-import org.w3c.dom.events.Event
-import org.w3c.dom.events.EventListener
+import org.w3c.dom.Node
 import org.w3c.dom.get
-import org.w3c.dom.pointerevents.PointerEvent
 
 data class Letter(
     val letter: Char,
@@ -26,10 +16,9 @@ data class Letter(
 ) {
     fun next(): TileStatus {
         this.status = when (this.status) {
-            TileStatus.TBD -> TileStatus.CORRECT
             TileStatus.CORRECT -> TileStatus.PRESENT
             TileStatus.PRESENT -> TileStatus.ABSENT
-            TileStatus.ABSENT -> TileStatus.TBD
+            TileStatus.ABSENT -> TileStatus.CORRECT
         }
 
         return this.status
@@ -41,23 +30,12 @@ data class Row(
 ) {
     companion object {
         fun fromInput(input: String): Row {
-            return Row(input.map { Letter(it, TileStatus.TBD) })
+            return Row(input.map { Letter(it, TileStatus.ABSENT) })
         }
-    }
-
-    fun allSet(): Boolean {
-        word.forEach {
-            if (it.status == TileStatus.TBD) {
-                return false
-            }
-        }
-
-        return true
     }
 }
 
 enum class TileStatus {
-    TBD,
     CORRECT,
     PRESENT,
     ABSENT
@@ -82,25 +60,26 @@ fun main() {
         guess.value = ""
         it.preventDefault()
     }, false)
-
 }
 
 fun submit(guess: String) {
+    if (guess.length != 5) {
+        return
+    }
+
     for (row in rows) {
         // Don't allow repeat words
         val word = row.word.map { it.letter }.joinToString("")
         if (word == guess) {
             return
         }
-
-        // Make sure they've set the status of the existing words
-        if (!row.allSet())
-            return
     }
 
     rows.add(Row.fromInput(guess))
 
     document.body?.renderBoard()
+    updateSummary()
+    updateGuessPlaceholder()
 }
 
 fun clickTile(rowIdx: Int, letterIdx: Int) {
@@ -110,18 +89,10 @@ fun clickTile(rowIdx: Int, letterIdx: Int) {
     tileElement.attributes.get("data-state")?.value = letter.next().name
 
     updateSummary()
-
     updateGuessPlaceholder()
 }
 
 fun updateGuessPlaceholder() {
-    rows.forEach {
-        if (!it.allSet()) {
-            console.log("not all set")
-            return
-        }
-    }
-
     if (remaining.count() == 0) {
         console.log("no more remaining")
         return
