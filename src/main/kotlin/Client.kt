@@ -135,13 +135,8 @@ fun updateSummary() {
                 }
                 TileStatus.PRESENT -> {
                     remaining = remaining.filter {
-                        // remove words that only have one copy of
-                        // the letter and its in the wrong spot
-                        if (it[letterIdx] == ch) {
-                            return@filter it.count { it == ch } != 1
-                        }
-
-                        it.contains(ch)
+                        it[letterIdx] != ch     // keep words where the letter is not in this spot
+                            && it.contains(ch)  // keep words that include the letter
                     }
                 }
                 TileStatus.ABSENT -> {
